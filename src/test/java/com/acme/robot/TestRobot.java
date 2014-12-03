@@ -2,6 +2,7 @@ package com.acme.robot;
 
 import static org.junit.Assert.*;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.acme.robot.Robot.BEARING;
@@ -18,6 +19,13 @@ public class TestRobot {
 	//Object under test:
 	private Robot robot = new TableTopRobot();
 	
+	@Before
+	public void setupTest(){
+		
+		robot.reset();
+		
+	}
+	
 	/**
 	 * Tests example a) PLACE 0,0,NORTH MOVE REPORT
 	 */
@@ -25,6 +33,7 @@ public class TestRobot {
 	public void testPlaceMoveReport(){
 		
 		robot.place(0, 0, BEARING.NORTH);
+		robot.move();
 		assertEquals("0,1,NORTH", robot.report());
 	
 	}
