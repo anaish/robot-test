@@ -11,7 +11,6 @@ import com.acme.robot.tabletop.TableTopRobot;
 
 /**
  * Test class for robot commands
- * @author Andrew
  *
  */
 public class TestRobot {
@@ -21,7 +20,7 @@ public class TestRobot {
 	
 	@Before
 	public void setupTest(){
-		
+		//reset the robot before each test
 		robot.reset();
 		
 	}
@@ -64,6 +63,38 @@ public class TestRobot {
 		assertEquals("3,3,NORTH", robot.report());
 		
 	
+	}
+	/**
+	 * Tests the ability for the robot to ignore everything until a valid place command
+	 */
+	@Test
+	public void testIgnoreUntilValidPlace(){
+		
+		robot.place(6, 6, BEARING.NORTH);
+		robot.move();
+		robot.place(-3, 0, BEARING.NORTH);
+		robot.rotate(DIRECTION.LEFT);
+		robot.place(0, 0, BEARING.NORTH);
+		robot.move();
+		assertEquals("0,1,NORTH", robot.report());
+		
+	}
+	
+	/**
+	 * Tests incorrect place followed by a correct place
+	 */
+	@Test
+	public void testIncorrectPlace(){
+		
+		robot.place(-1, -1, BEARING.NORTH);
+		assertEquals("Incorrect command sequence. Robot has not yet been placed correctly", robot.report());
+		
+		robot.place(6, 6, BEARING.EAST);
+		assertEquals("Incorrect command sequence. Robot has not yet been placed correctly", robot.report());
+		
+		robot.place(0, 0, BEARING.WEST);
+		assertEquals("0,0,WEST", robot.report());
+		
 	}
 	
 

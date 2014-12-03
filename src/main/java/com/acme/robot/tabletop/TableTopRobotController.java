@@ -16,7 +16,8 @@ import com.acme.robot.RobotController;
  * Validates and issues commands to the robot 
  */
 public class TableTopRobotController implements RobotController {
-	
+
+	//the robot
 	private Robot robot = new TableTopRobot();
 
 	
@@ -27,16 +28,23 @@ public class TableTopRobotController implements RobotController {
 	@Override
 	public void executeCommands(final String[] args) {
 
-		//bail early
-		if(args.length == 0 || args[0].length() == 0)
-			throw new IllegalArgumentException("Missing or invalid command(s)");
+		//log the commands
+		System.out.println("Executing commands\n" + Arrays.asList(args).stream().collect(Collectors.joining(" ")));
+
+		//bail early if there are no commands
+		if(args.length == 0 || args[0].length() == 0){
+			System.out.println("Missing or invalid command(s)");
+			return;
+		}
 		
 		//split the command string into individual commands and arguments. Make the list modifiable.
 		final List<String> rawCommands = new ArrayList<String>(Arrays.asList(args));
 		
 		//check we have at least one command
-		if(rawCommands.size()==0 && rawCommands.contains(Robot.COMMAND_PLACE))
-			throw new IllegalArgumentException("Missing or invalid command(s)");
+		if(rawCommands.size()==0 && rawCommands.contains(Robot.COMMAND_PLACE)){
+			System.out.println("Missing or invalid command(s), PLACE command required");
+			return;
+		}
 		
 		//nothing happens before a place command, so strip any commands before that point
 		final List<String> commands  = rawCommands.subList(rawCommands.indexOf(Robot.COMMAND_PLACE), rawCommands.size());
@@ -53,8 +61,8 @@ public class TableTopRobotController implements RobotController {
 		}
 		
 		//strip off any leading or tailing spaces
-		//we can use the new java 8 parallel processing API 
-		final List<String> processedCommands = commands.parallelStream().map(c -> c.trim()).collect(Collectors.toList());
+		//we can use the new java 8 streams api 
+		final List<String> processedCommands = commands.stream().map(c -> c.trim()).collect(Collectors.toList());
 		
 		//reset the robot
 		robot.reset();
@@ -71,8 +79,10 @@ public class TableTopRobotController implements RobotController {
 	private void executeCommand(final String command) {
 
 		//bail early if there is a bad command
-		if(command==null||command.length()==0)
-			throw new IllegalArgumentException("Missing or invalid command sequence " + command);
+		if(command==null||command.length()==0){
+			System.out.println("Missing or invalid command " + command);
+			return;
+		}
 		
 		final String cmd;
 		final Optional<String> args;
@@ -93,7 +103,7 @@ public class TableTopRobotController implements RobotController {
 				if(args.isPresent()){
 					this.executePlace(args.get().split(","));
 				} else {
-					throw new IllegalArgumentException("Invalid "+ Robot.COMMAND_PLACE  +" command, requires arguments x,y and bearing");
+					System.out.println("Invalid "+ Robot.COMMAND_PLACE  +" command, requires arguments x,y and bearing");
 				}
 				break;
 				
@@ -114,7 +124,7 @@ public class TableTopRobotController implements RobotController {
 				break;
 				
 			default:
-				throw new IllegalArgumentException("Unknown command");
+				throw new IllegalArgumentException("Unknown command " + cmd);
 						
 		}
 		
@@ -126,20 +136,17 @@ public class TableTopRobotController implements RobotController {
 	 */
 	private void executePlace(final String[] args){
 
+		if(args.length!=3)
+			System.out.println("Invalid place command parameters, requires x,y and bearing");
+		
 		//parse the input
 		final int x = Integer.parseInt(args[0]);
 		final int y = Integer.parseInt(args[1]);
 		final BEARING bearing = BEARING.valueOf(args[2]);
 		
-		//check this place command is within the table
-		if(TableTopRobot.isWithinTable(x, y)){
-			//place the robot
-			robot.place(x, y, bearing);
-		} else {
-			throw new IllegalArgumentException("Invalid PLACE arguments: " + x + "," + y 
-											+ " location is not within bounds " 
-											+ TableTopRobot.X_MIN + "," + TableTopRobot.Y_MIN + "," + TableTopRobot.X_MAX + "," + TableTopRobot.Y_MAX);
-		}
+		robot.place(x, y, bearing);
+		
+
 		
 	}
 

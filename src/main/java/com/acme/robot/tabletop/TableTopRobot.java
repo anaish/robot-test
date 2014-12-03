@@ -21,17 +21,23 @@ public class TableTopRobot implements Robot {
 	@Override
 	public void move() {
 		//check the robot is placed
-		if(!this.placed)
-			throw new IllegalStateException("Incorrect command sequence. Robot has not yet been placed");	
+		if(!this.placed){
+			System.out.println("Incorrect command sequence. Robot has not yet been placed");
+			return;
+		}
 		
 		int deltaX = this.toDeltaY(this.bearing);
 		int deltaY = this.toDeltaX(this.bearing);
 		
-		if(!isWithinTable(this.x + deltaX, this.y + deltaY))
-			throw new IllegalArgumentException("Invalid move command, robot will be positioned outside table bounds");
+		if(!isWithinTable(this.x + deltaX, this.y + deltaY)){
+			System.out.println("Invalid move command, robot will be positioned outside table bounds. Command ignored");
+			return;
+		}
 		
 		this.x += deltaX;
 		this.y += deltaY;
+		
+		
 		
 	}
 
@@ -39,8 +45,10 @@ public class TableTopRobot implements Robot {
 	@Override
 	public void rotate(DIRECTION direction) {
 		
-		if(!this.placed)
-			throw new IllegalStateException("Incorrect command sequence. Robot has not yet been placed");	
+		if(!this.placed){
+			System.out.println("Incorrect command sequence. Robot has not yet been placed");
+			return;
+		}
 		
 		int delta = direction.equals(DIRECTION.RIGHT) ? 90 : -90;
 		
@@ -54,20 +62,27 @@ public class TableTopRobot implements Robot {
 	public String report() {
 		
 		if(!this.placed)
-			throw new IllegalStateException("Incorrect command sequence. Robot has not yet been placed");	
-		
+			return "Incorrect command sequence. Robot has not yet been placed correctly";
+
 		return this.x + "," + this.y + "," + this.bearing.name();
 	}
 
 	@Override
 	public void place(int x, int y, BEARING bearing) {
 		
-		this.x = x;
-		this.y = y;
-		this.bearing = bearing;
-		this.angle = this.toAngle(bearing);
-		this.placed = true;
+		//check this place command is within the table
+		if(isWithinTable(x, y)){
+			//place the robot
+			this.x = x;
+			this.y = y;
+			this.bearing = bearing;
+			this.angle = this.toAngle(bearing);
+			this.placed = true;
+		} else {
+			System.out.println("Invalid PLACE command, robot will be positioned outside table bounds. Command ignored");
+		}
 		
+	
 	}
 
 	@Override
