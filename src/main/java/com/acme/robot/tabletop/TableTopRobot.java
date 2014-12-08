@@ -29,7 +29,7 @@ public class TableTopRobot implements Robot {
 		int deltaX = this.toDeltaY(this.bearing);
 		int deltaY = this.toDeltaX(this.bearing);
 		
-		if(!isWithinTable(this.x + deltaX, this.y + deltaY)){
+		if(!this.isWithinTable(this.x + deltaX, this.y + deltaY)){
 			System.out.println("Invalid move command, robot will be positioned outside table bounds. Command ignored");
 			return;
 		}
@@ -71,16 +71,18 @@ public class TableTopRobot implements Robot {
 	public void place(int x, int y, BEARING bearing) {
 		
 		//check this place command is within the table
-		if(isWithinTable(x, y)){
-			//place the robot
-			this.x = x;
-			this.y = y;
-			this.bearing = bearing;
-			this.angle = this.toAngle(bearing);
-			this.placed = true;
-		} else {
+		if(this.isWithinTable(x, y)){
 			System.out.println("Invalid PLACE command, robot will be positioned outside table bounds. Command ignored");
+			return;
 		}
+
+		//place the robot
+		this.x = x;
+		this.y = y;
+		this.bearing = bearing;
+		this.angle = this.toAngle(bearing);
+		this.placed = true;
+	
 		
 	
 	}
@@ -97,9 +99,9 @@ public class TableTopRobot implements Robot {
 	 * @param y int y location
 	 * @return true if this x and y are within the table bounds
 	 */
-	public static boolean isWithinTable(int x, int y) {
+	private boolean isWithinTable(int x, int y) {
 		
-		return x >= X_MIN && x<=X_MAX && y >= Y_MIN && y<=Y_MAX;
+		return x >= X_MIN && x < X_MAX && y >= Y_MIN && y< Y_MAX;
 		
 	}
 	
