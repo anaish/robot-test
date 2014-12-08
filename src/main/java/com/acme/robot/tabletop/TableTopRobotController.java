@@ -136,8 +136,10 @@ public class TableTopRobotController implements RobotController {
 	 */
 	private void executePlace(final String[] args){
 
-		if(args.length!=3)
+		if(args.length!=3){
 			System.out.println("Invalid place command parameters, requires x,y and bearing");
+			return;
+		}
 		
 		//parse the input
 		final int x = Integer.parseInt(args[0]);
