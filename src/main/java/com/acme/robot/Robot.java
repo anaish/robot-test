@@ -8,11 +8,14 @@ package com.acme.robot;
  */
 public interface Robot {
 	
-	public static final String COMMAND_PLACE = "PLACE";
-	public static final String COMMAND_MOVE = "MOVE";
-	public static final String COMMAND_LEFT = "LEFT";
-	public static final String COMMAND_RIGHT = "RIGHT";
-	public static final String COMMAND_REPORT = "REPORT";
+	
+	public static enum COMMAND_TYPE {
+		PLACE,
+		MOVE,
+		LEFT,
+		RIGHT,
+		REPORT
+	}
 	
 	public static enum BEARING {
 		NORTH,

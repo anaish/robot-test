@@ -22,7 +22,6 @@ public class TestRobot {
 	public void setupTest(){
 		//reset the robot before each test
 		robot.reset();
-		
 	}
 	
 	/**
@@ -86,13 +85,16 @@ public class TestRobot {
 	@Test
 	public void testIncorrectPlace(){
 		
+	
 		robot.place(-1, -1, BEARING.NORTH);
-		assertEquals("Incorrect command sequence. Robot has not yet been placed correctly", robot.report());
+		
+		assertEquals(TableTopRobot.ERROR_INCORRECT_COMMAND_SEQUENCE, robot.report());
 		
 		robot.place(6, 6, BEARING.EAST);
-		assertEquals("Incorrect command sequence. Robot has not yet been placed correctly", robot.report());
+		assertEquals(TableTopRobot.ERROR_INCORRECT_COMMAND_SEQUENCE, robot.report());
 		
 		robot.place(0, 0, BEARING.WEST);
+		
 		assertEquals("0,0,WEST", robot.report());
 		
 	}

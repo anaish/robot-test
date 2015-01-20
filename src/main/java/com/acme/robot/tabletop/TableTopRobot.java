@@ -8,35 +8,42 @@ import com.acme.robot.Robot;
  */
 public class TableTopRobot implements Robot {
 	
-	private int x;
-	private int y;
-	private boolean placed = false;
-	private BEARING bearing;
-	private int angle;
+	public static final String ERROR_INVALID_MOVE_COMMAND = "Invalid move command, robot will be positioned outside table bounds. Command ignored";
+	public static final String ERROR_INCORRECT_COMMAND_SEQUENCE = "Incorrect command sequence. Robot has not yet been placed";
+	
 	protected static final int X_MIN = 0;
 	protected static final int Y_MIN = 0;
 	protected static final int X_MAX = 5;
 	protected static final int Y_MAX = 5;
 	
+	private RobotState robotStateModel = new RobotState();
+	
 	@Override
 	public void move() {
 		//check the robot is placed
-		if(!this.placed){
-			System.out.println("Incorrect command sequence. Robot has not yet been placed");
+		
+		final RobotState robotModel = this.getRobotStateModel();
+		
+		if(!robotModel.isPlaced()){
+			System.out.println(ERROR_INCORRECT_COMMAND_SEQUENCE);
 			return;
 		}
+				
+		final int deltaX = Geometry.toDeltaY(robotModel.getBearing());
+		final int deltaY = Geometry.toDeltaX(robotModel.getBearing());
+		final int x = robotModel.getX();
+		final int y = robotModel.getY();
 		
-		int deltaX = this.toDeltaY(this.bearing);
-		int deltaY = this.toDeltaX(this.bearing);
-		
-		if(!this.isWithinTable(this.x + deltaX, this.y + deltaY)){
-			System.out.println("Invalid move command, robot will be positioned outside table bounds. Command ignored");
+		if(!Geometry.isWithin(x + deltaX, y + deltaY,
+								X_MIN, Y_MIN, X_MAX, Y_MAX)){
+			
+			System.out.println(ERROR_INVALID_MOVE_COMMAND);
 			return;
+			
 		}
 		
-		this.x += deltaX;
-		this.y += deltaY;
-		
+		robotModel.setX(x + deltaX);
+		robotModel.setY(y + deltaY);
 		
 		
 	}
@@ -45,44 +52,47 @@ public class TableTopRobot implements Robot {
 	@Override
 	public void rotate(DIRECTION direction) {
 		
-		if(!this.placed){
-			System.out.println("Incorrect command sequence. Robot has not yet been placed");
+		final RobotState robotModel = this.getRobotStateModel();
+		if(!robotModel.isPlaced()){
+			System.out.println(ERROR_INCORRECT_COMMAND_SEQUENCE);
 			return;
 		}
 		
-		int delta = direction.equals(DIRECTION.RIGHT) ? 90 : -90;
+		final int delta = direction.equals(DIRECTION.RIGHT) ? 90 : -90;
+		final int angle = robotModel.getAngle();
 		
 		int newBearing = (angle + delta == 360 ? 0 : angle + delta) == -90 ? 270 : angle + delta;
 					
-		this.bearing = this.toBearing(newBearing);
+		robotModel.setBearing(Geometry.toBearing(newBearing));
 		
 	}
 	
 	@Override
 	public String report() {
 		
-		if(!this.placed)
-			return "Incorrect command sequence. Robot has not yet been placed correctly";
+		final RobotState robotModel = this.getRobotStateModel();
+		if(!robotModel.isPlaced())
+			return ERROR_INCORRECT_COMMAND_SEQUENCE;
 
-		return this.x + "," + this.y + "," + this.bearing.name();
+		return robotModel.getX() + "," + robotModel.getY() + "," + robotModel.getBearing().name();
 	}
 
 	@Override
-	public void place(int x, int y, BEARING bearing) {
+	public void place(final int x, final int y, final BEARING bearing) {
 		
 		//check this place command is within the table
-		if(this.isWithinTable(x, y)){
+		if(!Geometry.isWithin(x, y, X_MIN, Y_MIN, X_MAX, Y_MAX)){
 			System.out.println("Invalid PLACE command, robot will be positioned outside table bounds. Command ignored");
 			return;
 		}
 
 		//place the robot
-		this.x = x;
-		this.y = y;
-		this.bearing = bearing;
-		this.angle = this.toAngle(bearing);
-		this.placed = true;
-	
+		final RobotState robotModel = this.getRobotStateModel();
+		robotModel.setX(x);
+		robotModel.setY(y);
+		robotModel.setBearing(bearing);
+		robotModel.setAngle(Geometry.toAngle(bearing));
+		robotModel.setPlaced(true);
 		
 	
 	}
@@ -90,100 +100,20 @@ public class TableTopRobot implements Robot {
 	@Override
 	public void reset() {
 		
-		this.placed = false;
-	}
-	
-	/**
-	 * Checks the x y location is inside the table bounds
-	 * @param x int x location
-	 * @param y int y location
-	 * @return true if this x and y are within the table bounds
-	 */
-	private boolean isWithinTable(int x, int y) {
-		
-		return x >= X_MIN && x < X_MAX && y >= Y_MIN && y< Y_MAX;
-		
-	}
-	
-	/**
-	 * Converts the an angle to a bearing
-	 * @param angle one of 0,90,180 or 270
-	 * @return one of BEARING.NORTH, BEARING.SOUTH, BEARING.EAST, BEARING.WEST
-	 * @throws IllegalArgumentException if the angle is not one of 0,90,180 or 270
-	 */
-	private BEARING toBearing(int angle) {
-		
-		switch(angle){
-			case 0:
-				return BEARING.NORTH;
-			case 90:
-				return BEARING.EAST;
-			case 180:
-				return BEARING.SOUTH;
-			case 270:
-				return BEARING.WEST;
-			default:
-				throw new IllegalArgumentException("Unknown angle");
-		}
-		
-	}
-	
-	/**
-	 * Converts a BEARING to an angle in decimal degrees
-	 * @param bearing one of BEARING.NORTH, BEARING.SOUTH, BEARING.EAST, BEARING.WEST
-	 * @return int the angle representing the bearing (one of 0,90,180 or 270)
-	 */
-	private int toAngle(BEARING bearing) {
-		
-		switch(bearing){
-			case NORTH:
-				return 0;
-			case SOUTH:
-				return 180;
-			case EAST:
-				return 90;
-			case WEST:
-				return 270;
-			default:
-				throw new IllegalArgumentException("Unknown bearing type " + bearing.name());
-		}
-		
-	}
-	
-	/**
-	 * Converts a BEARING to a direction vector in the x coordinate plane
-	 * @param bearing one of BEARING.NORTH, BEARING.SOUTH, BEARING.EAST, BEARING.WEST
-	 * @return 0, 1 or -1 indicating the magnitude of the direction component
-	 */
-	private int toDeltaX(BEARING bearing) {
-		
-		switch(bearing){
-			case NORTH:
-				return 1;
-			case SOUTH:
-				return -1;
-			default:
-				return 0;
-		}
+		this.setRobotStateModel(new RobotState());
 		
 	}
 
-	/**
-	 * Converts a BEARING to a direction vector in the y coordinate plane
-	 * @param bearing one of BEARING.NORTH, BEARING.SOUTH, BEARING.EAST, BEARING.WEST
-	 * @return 0, 1 or -1 indicating the magnitude of the direction component
-	 */
-	private int toDeltaY(BEARING bearing) {
-		
-		switch(bearing){
-			case EAST:
-				return 1;
-			case WEST:
-				return -1;
-			default:
-				return 0;
-		}
+	public RobotState getRobotStateModel() {
+		return robotStateModel;
 	}
+
+
+	public void setRobotStateModel(RobotState robotStateModel) {
+		this.robotStateModel = robotStateModel;
+	}
+	
+	
 
 		
 	

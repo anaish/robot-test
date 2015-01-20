@@ -1,13 +1,13 @@
 package com.acme.robot.tabletop;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import com.acme.robot.Robot;
 import com.acme.robot.Robot.BEARING;
+import com.acme.robot.Robot.COMMAND_TYPE;
 import com.acme.robot.Robot.DIRECTION;
 import com.acme.robot.RobotController;
 
@@ -18,120 +18,124 @@ import com.acme.robot.RobotController;
 public class TableTopRobotController implements RobotController {
 
 	//the robot
-	private Robot robot = new TableTopRobot();
-
+	private Robot robot;
 	
+	/*
+	 * Constructs a new TableTopRobotController
+	 */
+	public TableTopRobotController(final Robot robot) {
+		this.robot = robot;
+	}
+
 	/**
 	 * Issues individual commands to the robot
 	 * @param args String[] of valid robot commands
+	 * @throws IOException 
 	 */
 	@Override
-	public void executeCommands(final String[] args) {
+	public void executeCommands(final String fileName) throws IOException {
 
-		//log the commands
-		System.out.println("Executing commands\n" + Arrays.asList(args).stream().collect(Collectors.joining(" ")));
-
-		//bail early if there are no commands
-		if(args.length == 0 || args[0].length() == 0){
-			System.out.println("Missing or invalid command(s)");
-			return;
-		}
-		
-		//split the command string into individual commands and arguments. Make the list modifiable.
-		final List<String> rawCommands = new ArrayList<String>(Arrays.asList(args));
-		
-		//check we have at least one command
-		if(rawCommands.size()==0 && rawCommands.contains(Robot.COMMAND_PLACE)){
-			System.out.println("Missing or invalid command(s), PLACE command required");
-			return;
-		}
-		
-		//nothing happens before a place command, so strip any commands before that point
-		final List<String> commands  = rawCommands.subList(rawCommands.indexOf(Robot.COMMAND_PLACE), rawCommands.size());
-		
-		//For convenience, join all the place commands with their arguments.
-		//We use an index for loop, instead of a for each or 
-		//stream because we are removing elements as we go.
-		for(int i=0;i<commands.size();i++){
-			final String command = commands.get(i);
-			if(command.equals(Robot.COMMAND_PLACE)){
-				commands.set(i, command + commands.get(i+1));
-				commands.remove(i+1);
-			}
-		}
-		
-		//strip off any leading or tailing spaces
-		//we can use the new java 8 streams api 
-		final List<String> processedCommands = commands.stream().map(c -> c.trim()).collect(Collectors.toList());
-		
 		//reset the robot
 		robot.reset();
-		
-		//issue the commands to the robot
-		processedCommands.forEach(command -> this.executeCommand(command));
+		final BufferedReader br = new BufferedReader(new FileReader(fileName));
+		String line;
+		int lineCount = 1; 
+		while ((line = br.readLine()) != null) {
+			final String command = line.trim();
+			//ignore comments
+			if(!command.startsWith("#")){
+				final RobotCommand robotCommand = this.parseCommand(command, lineCount);
+				if(robotCommand.isValid()){
+					this.executeCommand(robotCommand);
+				}
+			}
+			lineCount++;
+		}
+		br.close();
 		
 	}
 
 	/**
 	 * Issues individual commands to the robot
 	 * @param command
+	 * @return 
 	 */
-	private void executeCommand(final String command) {
-
+	private RobotCommand parseCommand(final String command, int lineNumber) {
+		
+		final RobotCommand cmd = new RobotCommand();
+		
 		//bail early if there is a bad command
 		if(command==null||command.length()==0){
-			System.out.println("Missing or invalid command " + command);
-			return;
+			System.out.println("Missing or invalid command: \"" + command + "\" line " + lineNumber);
+			cmd.setValid(false);
+			return cmd;
+		}
+		try{
+			//grab the arguments if this is a place command 
+			final COMMAND_TYPE placeCommand = Robot.COMMAND_TYPE.PLACE;
+			if(command.startsWith(placeCommand.name())){
+				cmd.setCmd(placeCommand);
+				final String args = command.substring(placeCommand.name().length(), command.length());
+				cmd.setArgs(Optional.of(args.trim()));
+			} else {
+				cmd.setCmd(Robot.COMMAND_TYPE.valueOf(command));
+			}
+			cmd.setValid(true);	
+
+		}catch(IllegalArgumentException e){
+			//thrown when the command (enumeration) could not be looked up by name
+			System.out.println("Missing or invalid command: \"" + command + "\" line " + lineNumber);
+			cmd.setValid(false);
 		}
 		
-		final String cmd;
-		final Optional<String> args;
-
-		//grab the arguments if this is a place command 
-		if(command.startsWith(Robot.COMMAND_PLACE)){
-			
-			cmd = Robot.COMMAND_PLACE;
-			args = Optional.of(command.substring(Robot.COMMAND_PLACE.length(), command.length()));
-			
-		} else {
-			cmd = command;
-			args = Optional.empty(); 
-		}
-		//command switch
-		switch(cmd){
-			case Robot.COMMAND_PLACE:
-				if(args.isPresent()){
-					this.executePlace(args.get().split(","));
-				} else {
-					System.out.println("Invalid "+ Robot.COMMAND_PLACE  +" command, requires arguments x,y and bearing");
-				}
-				break;
-				
-			case Robot.COMMAND_LEFT:
-				robot.rotate(DIRECTION.valueOf(cmd));
-				break;
-				
-			case Robot.COMMAND_RIGHT:
-				robot.rotate(DIRECTION.valueOf(cmd));
-				break;
-				
-			case Robot.COMMAND_MOVE:
-				robot.move();
-				break;
-				
-			case Robot.COMMAND_REPORT:
-				System.out.println(robot.report());
-				break;
-				
-			default:
-				throw new IllegalArgumentException("Unknown command " + cmd);
-						
-		}
+		
+		return cmd;
 		
 	}
 
 	/**
-	 * Executes a place command for the robot, checks the robot is inside the table
+	 * Executes a single Robot Command
+	 * @param cmd
+	 */
+	private void executeCommand(final RobotCommand cmd) {
+
+		//command switch
+		final COMMAND_TYPE command = cmd.getCmd();
+		final Optional<String> args = cmd.getArgs();
+		
+		switch(command){
+			case PLACE:
+				if(args.isPresent()){
+					this.executePlace(args.get().split(","));
+				} else {
+					System.out.println("Invalid place command, requires arguments x,y and bearing");
+				}
+				break;
+				
+			case LEFT:
+				robot.rotate(DIRECTION.valueOf(command.name()));
+				break;
+				
+			case RIGHT:
+				robot.rotate(DIRECTION.valueOf(command.name()));
+				break;
+				
+			case MOVE:
+				robot.move();
+				break;
+				
+			case REPORT:
+				System.out.println(robot.report());
+				break;
+				
+			default:
+				throw new IllegalArgumentException("Unknown command " + command);
+						
+		}
+	}
+
+	/**
+	 * Executes a place command for the robot
 	 * @param args String[]{<x location>,<y location>,<BEARING (NORTH,SOUTH,EAST or WEST)>}
 	 */
 	private void executePlace(final String[] args){
@@ -148,10 +152,6 @@ public class TableTopRobotController implements RobotController {
 		
 		robot.place(x, y, bearing);
 		
-
-		
 	}
-
-	
 
 }
