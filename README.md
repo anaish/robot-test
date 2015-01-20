@@ -9,6 +9,8 @@ EXAMPLE SYNTAX:
 
 java -jar robot.jar robot_commands.txt
 
+(for convenience the runnable "robot.jar" is present under the "dist" directory of this repository)
+
 This implementation satisfies the following requirements:
 
 Toy Robot Simulator
